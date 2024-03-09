@@ -1,0 +1,81 @@
+turtles-own [position-x position-y]
+
+; setup of the environment
+to SETUP ; will happen when i click "SET" in the interface
+  clear-all
+  ask patches [set pcolor white]
+  create-turtles 50 [
+    set shape "airplane"
+    set xcor random max-pxcor
+    set ycor random max-pycor
+    set position-x xcor
+    set position-y ycor
+  ]
+  reset-ticks
+end
+
+to INITIAL-AVERAGE
+  let mx mean [xcor] of turtles
+  let my mean [ycor] of turtles
+  print (list mx my)
+  ask patch round mx round my [set pcolor red]  ; Corrected to use 'round' for patch indices
+end
+
+; Infinite loop which will be initialized when i click GO
+to GO
+  ask turtles [
+    ; Packet Loss And Noise
+    let packet-loss random-float 5.0
+    let noise-level 2
+
+    if random-float 1.0 > packet-loss [
+      let ratio 1 / (count out-link-neighbors + 1)
+      let consensus-x 0
+      let consensus-y 0
+
+      ask out-link-neighbors [
+        ; Adding the noise to that will simulate transmission noise
+        let noisy-position-x position-x + (random-float noise-level * 2 - noise-level)
+        let noisy-position-y position-y + (random-float noise-level * 2 - noise-level)
+
+        set consensus-x consensus-x + ratio * noisy-position-x
+        set consensus-y consensus-y + ratio * noisy-position-y
+      ]
+
+      ; Updating the positions after packet loss and noise have been taken into consideration
+      set position-x ratio * xcor + consensus-x
+      set position-y ratio * ycor + consensus-y
+    ]
+  ]
+
+  ask turtles [
+    set xcor position-x
+    set ycor position-y
+  ]
+
+  tick
+end
+
+to setup-spatially-clustered-network ;This will happen when i click on connect
+  let number (count turtles)
+  let num-links ceiling (5 * number) / 2
+  ifelse (num-links < number * (number - 1) / 2) [
+    while [count links < num-links] [
+      ask one-of turtles [
+        let choice (min-one-of (other turtles with [not link-neighbor? myself]) [distance myself])
+        if choice != nobody [create-link-with choice]
+      ]
+    ]
+  ] [
+    print "Choose smaller average-node-degree"
+  ]
+  ; Make the network look a little good bit prettier
+  repeat 10 [
+    layout-spring turtles links 0.3 (world-width / (sqrt number)) 1
+  ]
+
+  ; This is calculating and marking the average position of turtles, for when i click on "connect"
+  let avg-x mean [xcor] of turtles
+  let avg-y mean [ycor] of turtles
+  ask patch round avg-x round avg-y [set pcolor red]  ; This line marks the average position
+end
