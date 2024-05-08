@@ -1,5 +1,7 @@
 turtles-own [position-x position-y]
 
+
+; Assignment-2024.nlogo, from a class activity in intelligent systems, from blackboard has been used as foundation for this code
 ; setup of the environment
 to SETUP ; will happen when i click "SET" in the interface
   clear-all
